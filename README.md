@@ -25,4 +25,10 @@ The script should work if modified for other environments.
 4. Modify `NEXTCLOUD_HOME` and `USER_NAME` in `/etc/systemd/system/nextcloud-inotifyscan.service`
 5. `sudo systemctl enable --now nextcloud-inotifyscan`
 
-Tested on Ubuntu 16.04 LTS.
+## Notes
+
++ This script is tested on Ubuntu 16.04 LTS
++ This script ignores hidden files (`inotifywait --exclude '/\.'`), as Nextcloud does
++ A similar project implemented in `php`, [files_inotify](https://github.com/icewind1991/files_inotify), doesn't seem to work at this point in time
++ Watching ~2000 directories with ~30000 files, `inotifywait` consumes less than 4MB memory (RES+SHR)
++ To watch more than 8192 directories, `fs.inotify.max_user_watches` may need to be increased via `sysctl`
