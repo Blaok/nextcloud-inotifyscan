@@ -1,0 +1,13 @@
+[Unit]
+Description=Nextcloud inotify scan
+
+[Service]
+Type=simple
+User=www-data
+Environment=NEXTCLOUD_HOME=/path/to/nextcloud
+Environment=USER_NAME=watcheduser
+ExecStart=/usr/local/bin/nextcloud-inotifyscan
+
+[Install]
+WantedBy=multi-user.target
+
