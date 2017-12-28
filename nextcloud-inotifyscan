@@ -1,0 +1,74 @@
+#!/usr/bin/python
+import fcntl
+import os
+import subprocess
+import sys
+import time
+
+interval = os.environ.get('INTERVAL', 1.)
+if 'NEXTCLOUD_HOME' not in os.environ:
+    sys.stderr.write('ERROR: NEXTCLOUD_HOME not set\n')
+    sys.exit(1)
+if 'USER_NAME' not in os.environ:
+    sys.stderr.write('ERROR: USER_NAME not set\n')
+    sys.exit(1)
+nextcloud_home = os.environ['NEXTCLOUD_HOME']
+user_name = os.environ['USER_NAME']
+data_prefix = nextcloud_home+'/data'
+data_prefix_len = len(data_prefix)
+scan_paths = set()
+inotifywait_proc = subprocess.Popen(['inotifywait', '--event', 'create,modify,move,delete', '--exclude', '/\.', '--recursive', data_prefix+'/'+user_name+'/files', '--quiet', '--format', '%e/%f%w/', '--monitor'], stdout=subprocess.PIPE, bufsize=0)
+inotifywait_fd = inotifywait_proc.stdout.fileno()
+inotifywait_fl = fcntl.fcntl(inotifywait_fd, fcntl.F_GETFL)
+while True:
+    event = ''
+    file_name = ''
+    file_path = ''
+    while True:
+        fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl|os.O_NONBLOCK)
+        try:
+            c = inotifywait_proc.stdout.read(1)
+        except:
+            merged_paths = set()
+            for pp in scan_paths:
+                is_substring = False
+                for p in scan_paths:
+                    if len(p) < len(pp):
+                        if p == pp[:len(p)]:
+                            is_substring = True
+                if not is_substring:
+                    merged_paths |= {pp}
+            for p in merged_paths:
+                sys.stderr.write('Scan for %s\n' % p)
+                subprocess.call(['php', nextcloud_home+'/occ', 'files:scan', '--no-interaction', '--path='+p])
+            scan_paths = set()
+            time.sleep(interval)
+            continue
+        fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl)
+        if c != '/':
+            event += c
+        else:
+            while True:
+                c = inotifywait_proc.stdout.read(1)
+                if c != '/':
+                    file_name += c
+                else:
+                    lastc = ''
+                    while True:
+                        lastlastc = lastc
+                        lastc = c
+                        c = inotifywait_proc.stdout.read(1)
+                        if c == '\n' and lastc == '/' and lastlastc == '/':
+                            break
+                        else:
+                            file_path += lastc
+                    break
+            break
+    if set(event.split(',')) & {'CREATE', 'MODIFY'}:
+        scan_path = file_path+file_name
+    else:
+        scan_path = file_path
+    if data_prefix == scan_path[:data_prefix_len]:
+        scan_path = scan_path[data_prefix_len:]
+    sys.stderr.write('Found %s %s %s\n' % (file_path, event, file_name))
+    scan_paths |= {scan_path}
