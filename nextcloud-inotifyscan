@@ -41,7 +41,7 @@ while True:
             for p in merged_paths:
                 sys.stderr.write('Scan for %s\n' % p)
                 if os.environ['USE_DOCKER'] == 'True':
-                    subprocess.call(['docker exec -u'+os.environ['DOCKER_USER']+' '+os.environ['DOCKER_CONTAINER']+' php occ', 'files:scan', '--no-interaction', '--path='+p])
+                    subprocess.call(['docker', 'exec',  '-u'+os.environ['DOCKER_USER'], os.environ['DOCKER_CONTAINER'], 'php', 'occ', 'files:scan', '--no-interaction', '--path='+p])
                 else:
                     subprocess.call(['php', nextcloud_home+'/occ', 'files:scan', '--no-interaction', '--path='+p])
             scan_paths = set()
