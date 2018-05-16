@@ -6,7 +6,6 @@ Type=simple
 User=www-data
 Environment=NEXTCLOUD_HOME=/path/to/nextcloud
 Environment=USER_NAME=watcheduser
-Environment=USER_DIR=watcheduserdir
 Environment=USE_DOCKER=False
 Environment=DOCKER_USER=www-data
 Environment=DOCKER_CONTAINER=nextcloud_app
