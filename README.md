@@ -29,7 +29,7 @@ The script should work if modified for other environments.
 
 + This script is tested on Ubuntu 16.04 LTS and Ubuntu 18.04 LTS
 + This script ignores hidden files (`inotifywait --exclude '/\.'`), as Nextcloud does
-+ A similar project implemented in `php`, [files_inotify](https://github.com/icewind1991/files_inotify), ~~doesn't seem to work at this point in time~~but I'm not sure if it works
++ A similar project implemented in `php`, [files_inotify](https://github.com/icewind1991/files_inotify),<del> doesn't seem to work at this point in time</del> exists but I'm not sure if it works
 + Watching ~2000 directories with ~30000 files, `inotifywait` consumes less than 4MB memory (RES+SHR)
 + To watch more than 8192 directories, `fs.inotify.max_user_watches` may need to be increased via `sysctl`
 + Nextcloud 14 or a later version is required for [the `--shallow` flag](https://github.com/nextcloud/server/pull/9526)
