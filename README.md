@@ -28,6 +28,7 @@ The script should work if modified for other environments.
 ## Notes
 
 + This script is tested on Ubuntu 16.04 LTS and Ubuntu 18.04 LTS
+  - To install `inotifywait` on Ubuntu, use `sudo apt install inotify-tools`
 + This script ignores hidden files (`inotifywait --exclude '/\.'`), as Nextcloud does
 + A similar project implemented in `php`, [files_inotify](https://github.com/icewind1991/files_inotify),<del> doesn't seem to work at this point in time</del> exists but I'm not sure if it works
 + Watching ~2000 directories with ~30000 files, `inotifywait` consumes less than 4MB memory (RES+SHR)
