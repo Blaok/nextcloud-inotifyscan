@@ -11,7 +11,7 @@ def require_environ(var):
         sys.exit(1)
     return os.environ[var]
 
-interval = os.environ.get('INTERVAL', 1.)
+interval = float(os.environ.get('INTERVAL', 1.))
 user_name = require_environ('USER_NAME')
 if os.environ.get('USE_DOCKER') == 'True':
     docker_user = require_environ('DOCKER_USER')
