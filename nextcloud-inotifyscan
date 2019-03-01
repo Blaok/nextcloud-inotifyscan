@@ -5,16 +5,29 @@ import subprocess
 import sys
 import time
 
+def require_environ(var):
+    if var not in os.environ:
+        sys.stderr.write('ERROR: %s not set\n' % var)
+        sys.exit(1)
+    return os.environ[var]
+
 interval = os.environ.get('INTERVAL', 1.)
-if 'NEXTCLOUD_HOME' not in os.environ:
-    sys.stderr.write('ERROR: NEXTCLOUD_HOME not set\n')
-    sys.exit(1)
-if 'USER_NAME' not in os.environ:
-    sys.stderr.write('ERROR: USER_NAME not set\n')
-    sys.exit(1)
-nextcloud_home = os.environ['NEXTCLOUD_HOME']
-user_name = os.environ['USER_NAME']
-data_prefix = nextcloud_home+'/data'
+user_name = require_environ('USER_NAME')
+if os.environ.get('USE_DOCKER') == 'True':
+    docker_user = require_environ('DOCKER_USER')
+    docker_container = require_environ('DOCKER_CONTAINER')
+    occ_cmd = 'occ'
+    cmd_prefix = ['docker', 'exec',  '-u'+docker_user, docker_container]
+else:
+    nextcloud_home = require_environ('NEXTCLOUD_HOME')
+    occ_cmd = nextcloud_home+'/occ'
+    cmd_prefix = []
+data_prefix = os.environ.get('DATA_DIR')
+if data_prefix is None:
+    try:
+        data_prefix = os.environ['NEXTCLOUD_HOME']+'/data'
+    except KeyError:
+        sys.stderr.write('ERROR: neither DATA_DIR nor NEXTCLOUD_HOME set\n')
 data_prefix_len = len(data_prefix)
 scan_paths = set()
 inotifywait_proc = subprocess.Popen(['inotifywait', '--event', 'create,modify,move,delete', '--exclude', '/\.', '--recursive', data_prefix+'/'+user_name+'/files', '--quiet', '--format', '%e/%f%w/', '--monitor'], stdout=subprocess.PIPE, bufsize=0)
@@ -31,10 +44,7 @@ while True:
         except:
             for p in scan_paths:
                 sys.stderr.write('Scan for %s\n' % p)
-                if os.environ.get('USE_DOCKER') == 'True':
-                    subprocess.call(['docker', 'exec',  '-u'+os.environ['DOCKER_USER'], os.environ['DOCKER_CONTAINER'], 'php', 'occ', 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
-                else:
-                    subprocess.call(['php', nextcloud_home+'/occ', 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
+                subprocess.call(cmd_prefix+['php', occ_cmd, 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
             scan_paths = set()
             time.sleep(interval)
             continue

@@ -6,9 +6,12 @@ Type=simple
 User=www-data
 Environment=NEXTCLOUD_HOME=/path/to/nextcloud
 Environment=USER_NAME=watcheduser
-Environment=USE_DOCKER=False
-Environment=DOCKER_USER=www-data
-Environment=DOCKER_CONTAINER=nextcloud_app
+## For use with docker, set the following.
+# Environment=USE_DOCKER=True
+# Environment=DOCKER_USER=www-data
+# Environment=DOCKER_CONTAINER=nextcloud_app
+## For customized data directory, set the following.
+# Environment=DATA_DIR=/path/to/data
 ExecStart=/usr/local/bin/nextcloud-inotifyscan
 
 [Install]
