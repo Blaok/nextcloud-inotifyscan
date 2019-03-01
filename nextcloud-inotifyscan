@@ -29,21 +29,12 @@ while True:
         try:
             c = inotifywait_proc.stdout.read(1)
         except:
-            merged_paths = set()
-            for pp in scan_paths:
-                is_substring = False
-                for p in scan_paths:
-                    if len(p) < len(pp):
-                        if p == pp[:len(p)]:
-                            is_substring = True
-                if not is_substring:
-                    merged_paths |= {pp}
-            for p in merged_paths:
+            for p in scan_paths:
                 sys.stderr.write('Scan for %s\n' % p)
-                if os.environ['USE_DOCKER'] == 'True':
-                    subprocess.call(['docker', 'exec',  '-u'+os.environ['DOCKER_USER'], os.environ['DOCKER_CONTAINER'], 'php', 'occ', 'files:scan', '--no-interaction', '--path='+p])
+                if os.environ.get('USE_DOCKER') == 'True':
+                    subprocess.call(['docker', 'exec',  '-u'+os.environ['DOCKER_USER'], os.environ['DOCKER_CONTAINER'], 'php', 'occ', 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
                 else:
-                    subprocess.call(['php', nextcloud_home+'/occ', 'files:scan', '--no-interaction', '--path='+p])
+                    subprocess.call(['php', nextcloud_home+'/occ', 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
             scan_paths = set()
             time.sleep(interval)
             continue
