@@ -1,10 +1,29 @@
 #!/usr/bin/python
+from __future__ import print_function
+
+import atexit
 import fcntl
 import os
 import signal
 import subprocess
 import sys
 import time
+
+def cleanup(proc):
+  proc.kill()
+
+def read_char(fd, hook=lambda: None, hook_args=()):
+  try:
+    char = fd.read(1)
+    # Python 3 timeout
+    if char is None:
+      hook(*hook_args)
+      return None
+  # Python 2 timeout
+  except IOError:
+    hook(*hook_args)
+    return None
+  return char.decode()
 
 def require_environ(var):
   if var not in os.environ:
@@ -20,7 +39,7 @@ def main():
     docker_user = require_environ('DOCKER_USER')
     docker_container = require_environ('DOCKER_CONTAINER')
     occ_cmd = 'occ'
-    cmd_prefix = ['docker', 'exec',  '-u'+docker_user, docker_container]
+    cmd_prefix = ['docker', 'exec', '-u'+docker_user, docker_container]
   else:
     nextcloud_home = require_environ('NEXTCLOUD_HOME')
     occ_cmd = nextcloud_home+'/occ'
@@ -33,30 +52,36 @@ def main():
       sys.stderr.write('ERROR: neither DATA_DIR nor NEXTCLOUD_HOME set\n')
   data_prefix_len = len(data_prefix)
   scan_paths = set()
-  inotifywait_proc = subprocess.Popen(['inotifywait', '--event', 'create,modify,move,delete', '--exclude', '/\.', '--recursive', data_prefix+'/'+user_name+'/files', '--quiet', '--format', '%e/%f%w/', '--monitor'], stdout=subprocess.PIPE, bufsize=0)
+  inotifywait_proc = subprocess.Popen(
+      ['inotifywait', '--event', 'create,modify,move,delete', '--exclude',
+       r'/\.', '--recursive', data_prefix+'/'+user_name+'/files', '--quiet',
+       '--format', '%e/%f%w/', '--monitor'],
+      stdout=subprocess.PIPE, bufsize=0)
+  atexit.register(cleanup, inotifywait_proc)
   inotifywait_fd = inotifywait_proc.stdout.fileno()
   inotifywait_fl = fcntl.fcntl(inotifywait_fd, fcntl.F_GETFL)
+  def polling_task():
+    for p in scan_paths:
+      sys.stderr.write('Scan for %s\n' % p)
+      subprocess.call(cmd_prefix+['php', occ_cmd, 'files:scan',
+                                  '--no-interaction', '--path='+p, '--shallow'])
+    scan_paths.clear()
+    time.sleep(interval)
   while True:
     event = ''
     file_name = ''
     file_path = ''
     while True:
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl|os.O_NONBLOCK)
-      try:
-        c = inotifywait_proc.stdout.read(1)
-      except:
-        for p in scan_paths:
-          sys.stderr.write('Scan for %s\n' % p)
-          subprocess.call(cmd_prefix+['php', occ_cmd, 'files:scan', '--no-interaction', '--path='+p, '--shallow'])
-        scan_paths = set()
-        time.sleep(interval)
+      c = read_char(inotifywait_proc.stdout, polling_task)
+      if c is None:
         continue
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl)
       if c != '/':
         event += c
       else:
         while True:
-          c = inotifywait_proc.stdout.read(1)
+          c = read_char(inotifywait_proc.stdout)
           if c != '/':
             file_name += c
           else:
@@ -64,7 +89,7 @@ def main():
             while True:
               lastlastc = lastc
               lastc = c
-              c = inotifywait_proc.stdout.read(1)
+              c = read_char(inotifywait_proc.stdout)
               if c == '\n' and lastc == '/' and lastlastc == '/':
                 break
               else:
