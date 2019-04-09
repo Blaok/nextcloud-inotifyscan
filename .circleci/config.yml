@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.1
+
+    steps:
+      - checkout
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            tests/test.sh
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
