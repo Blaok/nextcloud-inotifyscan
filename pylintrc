@@ -1,0 +1,28 @@
+[MESSAGES CONTROL]
+disable=invalid-name,missing-docstring
+
+[REPORTS]
+output-format=colorized
+
+[FORMAT]
+expected-line-ending-format=
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+indent-after-paren=4
+indent-string='  '
+max-line-length=80
+max-module-lines=2000
+no-space-check=trailing-comma,dict-separator
+single-line-if-stmt=no
+
+[DESIGN]
+ignored-argument-names=_.*
+max-args=12
+max-attributes=7
+max-branches=40
+max-locals=25
+max-nested-blocks=10
+max-parents=7
+max-public-methods=50
+max-returns=6
+max-statements=105
+min-public-methods=2
