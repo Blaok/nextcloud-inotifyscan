@@ -53,10 +53,10 @@ child=$!
 run-for-bob
 kill-all ${child}
 diff <(cat <<EOF
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 1
 
@@ -70,10 +70,10 @@ child=$!
 run-for-alice
 kill-all ${child}
 diff <(cat <<EOF
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/bar --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/조선말 --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/조선말 --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 2
 
@@ -88,10 +88,10 @@ child=$!
 run-for-bob
 kill-all ${child}
 diff <(cat <<EOF
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/bar --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/한국어 --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 3
 
@@ -106,10 +106,10 @@ child=$!
 run-for-alice
 kill-all ${child}
 diff <(cat <<EOF
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/bar --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/조선말 --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/조선말 --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 4
 
