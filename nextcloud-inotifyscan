@@ -38,18 +38,14 @@ def main():
   if os.environ.get('USE_DOCKER') == 'True':
     docker_user = require_environ('DOCKER_USER')
     docker_container = require_environ('DOCKER_CONTAINER')
-    occ_cmd = 'occ'
-    cmd_prefix = ['docker', 'exec', '-u'+docker_user, docker_container]
+    occ_cmd = ['docker', 'exec', '-u'+docker_user, docker_container,
+               'php', 'occ']
   else:
     nextcloud_home = require_environ('NEXTCLOUD_HOME')
-    occ_cmd = nextcloud_home+'/occ'
-    cmd_prefix = []
-  data_prefix = os.environ.get('DATA_DIR')
-  if data_prefix is None:
-    try:
-      data_prefix = os.environ['NEXTCLOUD_HOME']+'/data'
-    except KeyError:
-      sys.stderr.write('ERROR: neither DATA_DIR nor NEXTCLOUD_HOME set\n')
+    occ_cmd = ['php', nextcloud_home+'/occ']
+  data_prefix = subprocess.check_output(
+      occ_cmd+['config:system:get', 'datadirectory'],
+      universal_newlines=True).rstrip()
   data_prefix_len = len(data_prefix)
   scan_paths = set()
   inotifywait_proc = subprocess.Popen(
@@ -63,8 +59,8 @@ def main():
   def polling_task():
     for p in scan_paths:
       sys.stderr.write('Scan for %s\n' % p)
-      subprocess.call(cmd_prefix+['php', occ_cmd, 'files:scan',
-                                  '--no-interaction', '--path='+p, '--shallow'])
+      subprocess.call(occ_cmd+['files:scan', '--no-interaction', '--path='+p,
+                               '--shallow'])
     scan_paths.clear()
     time.sleep(interval)
   while True:
