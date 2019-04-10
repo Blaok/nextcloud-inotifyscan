@@ -4,6 +4,7 @@ Description=Nextcloud inotify scan
 [Service]
 Type=simple
 User=www-data
+Environment=PYTHONIOENCODING=utf-8
 Environment=NEXTCLOUD_HOME=/path/to/nextcloud
 Environment=USER_NAME=watcheduser
 ## For use with docker, set the following.
