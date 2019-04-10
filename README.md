@@ -13,17 +13,17 @@ This Python script uses `inotifywait` to watch for changes and issues scan reque
 + Linux with systemd
 + Nextcloud 14+ installation
 + `php` and `inotifywait` in `PATH`
-+ Python 2.7+ as `/usr/bin/python`
++ Python 2.7 or 3.2+ as `/usr/bin/python`
 
 The script should work if modified for other environments.
 
 ## Usage
 
-1. Download [nextcloud-inotifyscan](nextcloud-inotifyscan) as `/usr/local/bin/nextcloud-inotifyscan`
-2. `sudo chmod +x /usr/local/bin/nextcloud-inotifyscan`
-3. Download [nextcloud-inotifyscan.service](nextcloud-inotifyscan.service) as `/etc/systemd/system/nextcloud-inotifyscan.service`
-4. Modify `NEXTCLOUD_HOME` and `USER_NAME` in `/etc/systemd/system/nextcloud-inotifyscan.service`
-5. `sudo systemctl enable --now nextcloud-inotifyscan`
+1. Clone this repo: `git clone https://github.com/Blaok/nextcloud-inotifyscan; cd nextcloud-inotifyscan`
+2. Install the script and config in the correct locations: `sudo make install`
+3. Figure out which Unix `username` is running Nextcloud; on `Debian/Ubuntu` this is usually `www-data`
+4. Create `/etc/nextcloud-inotifyscan/username.ini` according to the example given in `/etc/nextcloud-inotifyscan/sample.ini`
+5. Enable and start the service: `sudo systemctl enable --now nextcloud-inotifyscan@username`
 
 ## Features
 

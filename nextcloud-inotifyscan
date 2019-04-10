@@ -1,13 +1,109 @@
 #!/usr/bin/python
 from __future__ import print_function
 
+import argparse
 import atexit
+import collections
 import fcntl
+import logging
 import os
 import signal
 import subprocess
 import sys
 import time
+
+try:
+  import configparser
+except ImportError:
+  import ConfigParser as configparser
+
+logging.basicConfig(format='%(levelname)s - %(message)s')
+_logger = logging.getLogger()
+
+Instance = collections.namedtuple('Instance', 'interval occ user docker')
+
+class EnvironNotFound(Exception):
+  pass
+
+def parse_config(config_file):
+  """Parse the give config file and yield Instance objects.
+  """
+  try:
+    config = configparser.ConfigParser()
+    config.readfp(config_file)
+  except configparser.Error as e:
+    _logger.fatal('config error: %s', e)
+  for section in config.sections():
+    try:
+      interval = config.getfloat(section, 'interval')
+      occ = config.get(section, 'occ')
+      users = config.get(section, 'user').split(',')
+      try:
+        docker = config.getboolean(section, 'docker')
+      except ValueError:
+        docker = config.get(section, 'docker').split(':')
+        if len(docker) != 2:
+          _logger.warning('docker must be specified as `username:container`')
+          continue
+      for user in map(str.strip, users):
+        yield Instance(interval=interval, occ=occ, user=user, docker=docker)
+    except configparser.Error as e:
+      _logger.warning('config error: %s', e)
+
+def parse_environ():
+  """Parse the environment variables and return an Instance object.
+  """
+  def require_environ(var):
+    if var not in os.environ:
+      raise EnvironNotFound('environment variable %s is not set' % var)
+    return os.environ[var]
+
+  interval = float(os.environ.get('INTERVAL', 1.))
+  user = require_environ('USER_NAME').strip()
+  if os.environ.get('USE_DOCKER') == 'True':
+    docker = [require_environ('DOCKER_USER'),
+              require_environ('DOCKER_CONTAINER')]
+    occ = 'occ'
+  else:
+    docker = False
+    occ = require_environ('NEXTCLOUD_HOME') + '/occ'
+  return Instance(interval=interval, occ=occ, user=user, docker=docker)
+
+def parse_args():
+  """Parse commandline arguments and yield Instance objects.
+  """
+  parser = argparse.ArgumentParser(description='nextcloud inotifyscan')
+  parser.add_argument('-c', '--config', type=argparse.FileType('r'),
+                      help='optional config file')
+  parser.add_argument('-v', '--verbose', action='count',
+                      help='increase logging verbosity')
+  parser.add_argument('-q', '--quiet', action='count',
+                      help='decrease logging verbosity')
+  args = parser.parse_args(sys.argv[1:])
+
+  verbosity = 0
+  if args.verbose is not None:
+    verbosity += args.verbose
+  if args.quiet is not None:
+    verbosity -= args.quiet
+  if verbosity > 0:
+    _logger.setLevel(logging.DEBUG)
+  elif verbosity == 0:
+    _logger.setLevel(logging.INFO)
+  elif verbosity == -1:
+    _logger.setLevel(logging.WARNING)
+  elif verbosity == -2:
+    _logger.setLevel(logging.ERROR)
+  else:
+    _logger.setLevel(logging.CRITICAL)
+
+  try:
+    yield parse_environ()
+  except EnvironNotFound:
+    pass
+
+  for instance in parse_config(args.config):
+    yield instance
 
 def cleanup(proc):
   proc.kill()
@@ -25,24 +121,15 @@ def read_char(fd, hook=lambda: None, hook_args=()):
     return None
   return char
 
-def require_environ(var):
-  if var not in os.environ:
-    sys.stderr.write('ERROR: %s not set\n' % var)
-    sys.exit(1)
-  return os.environ[var]
-
 def main():
   signal.signal(signal.SIGINT, signal.default_int_handler)
-  interval = float(os.environ.get('INTERVAL', 1.))
-  user_name = require_environ('USER_NAME')
-  if os.environ.get('USE_DOCKER') == 'True':
-    docker_user = require_environ('DOCKER_USER')
-    docker_container = require_environ('DOCKER_CONTAINER')
-    occ_cmd = ['docker', 'exec', '-u'+docker_user, docker_container,
-               'php', 'occ']
+  instance = next(parse_args())
+  interval, user_name = instance.interval, instance.user
+  if instance.docker:
+    occ_cmd = ['docker', 'exec', '-u'+instance.docker[0], instance.docker[1],
+               'php', instance.occ]
   else:
-    nextcloud_home = require_environ('NEXTCLOUD_HOME')
-    occ_cmd = ['php', nextcloud_home+'/occ']
+    occ_cmd = ['php', instance.occ]
   data_prefix = subprocess.check_output(
       occ_cmd+['config:system:get', 'datadirectory'],
       universal_newlines=True).rstrip()
@@ -58,7 +145,7 @@ def main():
   inotifywait_fl = fcntl.fcntl(inotifywait_fd, fcntl.F_GETFL)
   def polling_task():
     for p in scan_paths:
-      sys.stderr.write('Scan for %s\n' % p)
+      _logger.info('Scan for %s\n', p)
       subprocess.call(occ_cmd+['files:scan', '--no-interaction', '--path='+p,
                                '--shallow', '--quiet'])
     scan_paths.clear()
@@ -101,7 +188,7 @@ def main():
       scan_path = file_path
     if data_prefix == scan_path[:data_prefix_len]:
       scan_path = scan_path[data_prefix_len:]
-    sys.stderr.write('Found %s %s %s\n' % (file_path, event, file_name))
+    _logger.info('Found %s %s %s\n', file_path, event, file_name)
     scan_paths |= {scan_path}
 
 if __name__ == '__main__':

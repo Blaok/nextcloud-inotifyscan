@@ -113,4 +113,48 @@ docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/a
 EOF
 ) ${tmp} || exit 4
 
+# Use case 5:
+#   use config bob.ini
+cat >"${testdir}/bob.ini" <<EOF
+[Bob]
+interval = 0.2
+occ = ${nextcloud}/occ
+user = bob
+docker = no
+EOF
+NEXTCLOUD_HOME="${nextcloud}" ${python3} "${inotifyscan}" --config "${testdir}/bob.ini" >${tmp} &
+child=$!
+run-for-bob
+kill-all ${child}
+rm "${testdir}/bob.ini"
+diff <(cat <<EOF
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+EOF
+) ${tmp} || exit 5
+
+# Use case 6:
+#   use config alice.ini
+cat >"${testdir}/alice.ini" <<EOF
+[Alice]
+interval = 0.2
+occ = occ
+user = alice
+docker = userfoo:containerbar
+EOF
+DATA_DIR="${datadir}" "${inotifyscan}" --config "${testdir}/alice.ini" >${tmp} &
+child=$!
+run-for-alice
+kill-all ${child}
+rm "${testdir}/alice.ini"
+diff <(cat <<EOF
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/조선말 --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+EOF
+) ${tmp} || exit 6
+
 rm ${tmp}
