@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/buildpack-deps:bionic
 
     steps:
       - checkout
@@ -10,7 +10,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
+            sudo apt install -y inotify-tools python python3
             tests/test.sh
 
       - store_artifacts:
