@@ -60,7 +60,7 @@ def main():
     for p in scan_paths:
       sys.stderr.write('Scan for %s\n' % p)
       subprocess.call(occ_cmd+['files:scan', '--no-interaction', '--path='+p,
-                               '--shallow'])
+                               '--shallow', '--quiet'])
     scan_paths.clear()
     time.sleep(interval)
   while True:
