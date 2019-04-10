@@ -1,5 +1,5 @@
 [MESSAGES CONTROL]
-disable=invalid-name,missing-docstring
+disable=deprecated-method,invalid-name,missing-docstring
 
 [REPORTS]
 output-format=colorized

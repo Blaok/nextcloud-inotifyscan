@@ -15,4 +15,3 @@ ExecStart=/usr/local/bin/nextcloud-inotifyscan
 
 [Install]
 WantedBy=multi-user.target
-
