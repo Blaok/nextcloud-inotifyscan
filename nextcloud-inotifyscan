@@ -23,7 +23,7 @@ def read_char(fd, hook=lambda: None, hook_args=()):
   except IOError:
     hook(*hook_args)
     return None
-  return char.decode()
+  return char
 
 def require_environ(var):
   if var not in os.environ:
@@ -68,34 +68,37 @@ def main():
     scan_paths.clear()
     time.sleep(interval)
   while True:
-    event = ''
-    file_name = ''
-    file_path = ''
+    event = b''
+    file_name = b''
+    file_path = b''
     while True:
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl|os.O_NONBLOCK)
       c = read_char(inotifywait_proc.stdout, polling_task)
       if c is None:
         continue
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl)
-      if c != '/':
+      if c != b'/':
         event += c
       else:
         while True:
           c = read_char(inotifywait_proc.stdout)
-          if c != '/':
+          if c != b'/':
             file_name += c
           else:
-            lastc = ''
+            lastc = b''
             while True:
               lastlastc = lastc
               lastc = c
               c = read_char(inotifywait_proc.stdout)
-              if c == '\n' and lastc == '/' and lastlastc == '/':
+              if c == b'\n' and lastc == b'/' and lastlastc == b'/':
                 break
               else:
                 file_path += lastc
             break
         break
+    event = event.decode('utf-8')
+    file_name = file_name.decode('utf-8')
+    file_path = file_path.decode('utf-8')
     if set(event.split(',')) & {'CREATE', 'MODIFY'}:
       scan_path = file_path+file_name
     else:
