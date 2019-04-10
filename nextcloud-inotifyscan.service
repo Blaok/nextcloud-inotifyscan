@@ -1,9 +1,9 @@
 [Unit]
-Description=Nextcloud inotify scan
+Description=Nextcloud inotify scan daemon (deprecated)
 
 [Service]
 Type=simple
-User=www-data
+User=%i
 Environment=PYTHONIOENCODING=utf-8
 Environment=NEXTCLOUD_HOME=/path/to/nextcloud
 Environment=USER_NAME=watcheduser

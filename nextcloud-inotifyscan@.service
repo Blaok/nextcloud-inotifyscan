@@ -1,11 +1,11 @@
 [Unit]
-Description=Nextcloud inotify scan
+Description=Nextcloud inotify scan daemon for %I
 
 [Service]
 Type=simple
-User=www-data
+User=%i
 Environment=PYTHONIOENCODING=utf-8
-ExecStart=/usr/local/bin/nextcloud-inotifyscan --config /etc/nextcloud-inotifyscan/%i.conf
+ExecStart=/usr/local/bin/nextcloud-inotifyscan --config /etc/nextcloud-inotifyscan/%i.ini
 
 [Install]
 WantedBy=multi-user.target
