@@ -1,1 +1,7 @@
-../../mock-bin
+#!/bin/sh
+args="$@"
+shift 3
+if ! print-data-dir $@
+then
+  echo $(basename $0) "$args"
+fi

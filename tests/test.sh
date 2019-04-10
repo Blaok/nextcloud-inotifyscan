@@ -61,7 +61,7 @@ EOF
 ) ${tmp} || exit 1
 
 # Use case 2:
-#   set NEXTCLOUD_HOME, USER_NAME, and DATA_DIR
+#   set NEXTCLOUD_HOME, USER_NAME
 #   php must be available in $PATH
 #   $NEXTCLOUD_HOME/occ will be used
 #   data directory is customized
@@ -96,7 +96,7 @@ EOF
 ) ${tmp} || exit 3
 
 # Use case 4:
-#   set USE_DOCKER=True, DOCKER_USER, DOCKER_CONTAINER, DATA_DIR, and USER_NAME
+#   set USE_DOCKER=True, DOCKER_USER, DOCKER_CONTAINER, and USER_NAME
 #   docker must be available in $PATH
 #   php must be available in the docker's $PATH
 #   occ in the docker's $PATH will be used
