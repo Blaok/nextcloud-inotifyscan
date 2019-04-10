@@ -53,15 +53,15 @@ child=$!
 run-for-bob
 kill-all ${child}
 diff <(cat <<EOF
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 1
 
 # Use case 2:
-#   set NEXTCLOUD_HOME, USER_NAME, and DATA_DIR
+#   set NEXTCLOUD_HOME, USER_NAME
 #   php must be available in $PATH
 #   $NEXTCLOUD_HOME/occ will be used
 #   data directory is customized
@@ -70,10 +70,10 @@ child=$!
 run-for-alice
 kill-all ${child}
 diff <(cat <<EOF
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/bar --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/조선말 --shallow
-php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/조선말 --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 2
 
@@ -88,15 +88,15 @@ child=$!
 run-for-bob
 kill-all ${child}
 diff <(cat <<EOF
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/bar --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/한국어 --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 3
 
 # Use case 4:
-#   set USE_DOCKER=True, DOCKER_USER, DOCKER_CONTAINER, DATA_DIR, and USER_NAME
+#   set USE_DOCKER=True, DOCKER_USER, DOCKER_CONTAINER, and USER_NAME
 #   docker must be available in $PATH
 #   php must be available in the docker's $PATH
 #   occ in the docker's $PATH will be used
@@ -106,10 +106,10 @@ child=$!
 run-for-alice
 kill-all ${child}
 diff <(cat <<EOF
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/bar --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/조선말 --shallow
-docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/조선말 --shallow --quiet
+docker exec -uuserfoo containerbar php occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 4
 

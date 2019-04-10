@@ -1,0 +1,16 @@
+#!/bin/sh
+if test $# -eq 4 &&
+  test "$1" = "php"
+  test "$(basename $2)" = "occ"
+  test "$3" = "config:system:get" &&
+  test "$4" = "datadirectory"
+then
+  if test -n "${DATA_DIR}"
+  then
+    echo "${DATA_DIR}"
+  else
+    echo "${NEXTCLOUD_HOME}/data"
+  fi
+  exit 0
+fi
+exit 1
