@@ -25,6 +25,10 @@ The script should work if modified for other environments.
 4. Modify `NEXTCLOUD_HOME` and `USER_NAME` in `/etc/systemd/system/nextcloud-inotifyscan.service`
 5. `sudo systemctl enable --now nextcloud-inotifyscan`
 
+## Features
+
++ The `data` dir path is now read from `/path/to/nextcloud/config.php` automatically.
+
 ## Notes
 
 + This script is tested on Ubuntu 18.04 LTS
