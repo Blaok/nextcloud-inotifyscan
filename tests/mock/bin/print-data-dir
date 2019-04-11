@@ -5,11 +5,11 @@ if test $# -eq 4 &&
   test "$3" = "config:system:get" &&
   test "$4" = "datadirectory"
 then
-  if test -n "${DATA_DIR}"
+  if test -n "${LOCAL_DATA}"
   then
-    echo "${DATA_DIR}"
+    echo "$(realpath $(dirname $0)/../..)/mock/data"
   else
-    echo "${NEXTCLOUD_HOME}/data"
+    echo "$(realpath $(dirname $0)/../..)/mock/nextcloud/data"
   fi
   exit 0
 fi
