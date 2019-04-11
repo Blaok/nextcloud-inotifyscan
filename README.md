@@ -28,6 +28,7 @@ The script should work if modified for other environments.
 ## Features
 
 + The `data` dir path is now read from `/path/to/nextcloud/config.php` automatically.
++ Multiple users and multiple Nextcloud installation instances can be watched in a single service.
 
 ## Notes
 
