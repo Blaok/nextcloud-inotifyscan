@@ -5,6 +5,7 @@ import argparse
 import atexit
 import collections
 import fcntl
+import json
 import logging
 import os
 import signal
@@ -20,11 +21,19 @@ except ImportError:
 logging.basicConfig(format='%(levelname)s - %(message)s')
 _logger = logging.getLogger()
 
-Instance = collections.namedtuple('Instance', 'interval occ user docker')
-Task = collections.namedtuple('Task', 'interval occ_cmd paths')
+Instance = collections.namedtuple(
+    'Instance', 'interval occ users external_storage docker')
+Folder = collections.namedtuple('Folder', 'occ_cmd path_prefix data_prefix')
+Task = collections.namedtuple('Task', 'occ_cmd paths')
 
 class EnvironNotFound(Exception):
   pass
+
+def configparser_default(get_func, section, option, default):
+  try:
+    return get_func(section, option)
+  except configparser.NoOptionError:
+    return default
 
 def parse_config(config_file):
   """Parse the give config file and yield Instance objects.
@@ -36,9 +45,12 @@ def parse_config(config_file):
     _logger.fatal('config error: %s', e)
   for section in config.sections():
     try:
-      interval = config.getfloat(section, 'interval')
+      interval = configparser_default(
+          config.getfloat, section, 'interval', 1.0)
       occ = config.get(section, 'occ')
-      users = config.get(section, 'user').split(',')
+      users = tuple(map(str.strip, config.get(section, 'user').split(',')))
+      external_storage = configparser_default(
+          config.getboolean, section, 'external_storage', None)
       try:
         docker = config.getboolean(section, 'docker')
       except ValueError:
@@ -46,8 +58,8 @@ def parse_config(config_file):
         if len(docker) != 2:
           _logger.warning('docker must be specified as `username:container`')
           continue
-      for user in map(str.strip, users):
-        yield Instance(interval=interval, occ=occ, user=user, docker=docker)
+      yield Instance(interval=interval, occ=occ, users=users,
+                     external_storage=external_storage, docker=docker)
     except configparser.Error as e:
       _logger.warning('config error: %s', e)
 
@@ -68,7 +80,8 @@ def parse_environ():
   else:
     docker = False
     occ = require_environ('NEXTCLOUD_HOME') + '/occ'
-  return Instance(interval=interval, occ=occ, user=user, docker=docker)
+  return Instance(interval=interval, occ=occ, users=(user,),
+                  external_storage=None, docker=docker)
 
 def parse_args():
   """Parse commandline arguments and yield Instance objects.
@@ -123,7 +136,63 @@ def watch_instances(instances):
   """Setup inotifywait for the given instances and yield tasks.
   """
   instances = tuple(instances)
-  workers = [watch(instance) for instance in instances]
+  folders = []
+  for instance in instances:
+    if instance.docker:
+      occ_cmd = ['docker', 'exec', '-u'+instance.docker[0], instance.docker[1],
+                 'php', instance.occ]
+    else:
+      occ_cmd = ['php', instance.occ]
+    data_dir = subprocess.check_output(
+        occ_cmd+['config:system:get', 'datadirectory'],
+        universal_newlines=True).rstrip()
+    for user in instance.users:
+      # path_prefix is the virtual folder recognized by Nextcloud
+      # data_prefix is the actual filesystem folder
+      # both should point to the same logical folder
+      path_prefix = '/'+user+'/files'
+      data_prefix = data_dir+path_prefix
+      folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
+                            data_prefix=data_prefix))
+    if instance.external_storage:
+      _logger.debug('external storage scan is enabled for Nextcloud at %s',
+                    os.path.dirname(instance.occ))
+      external_storages = json.loads(subprocess.check_output(
+          occ_cmd+['files_external:export', '--all'],
+          universal_newlines=True))
+      for storage in external_storages:
+        # only local storage works with inotify
+        if storage['storage'] != r'\OC\Files\Storage\Local':
+          continue
+        # storage may not be accessible to all users
+        user = instance.users[0]
+        if storage['applicable_users'] or storage['applicable_groups']:
+          users = set(storage['applicable_users']) & set(instance.users)
+          # use one of the applicable_users if possible
+          if users:
+            user = next(iter(users))
+            _logger.debug('using user %s for %s', user, data_prefix)
+          # otherwise see if any user has access via applicable_groups
+          else:
+            group = json.loads(subprocess.check_output(
+                occ_cmd+['group:list', '--output=json'],
+                universal_newlines=True))
+            users = set()
+            for g in storage['applicable_groups']:
+              users |= set(group[g])
+            users &= set(instance.users)
+            if users:
+              user = next(iter(users))
+              _logger.debug('using user %s for %s', user, data_prefix)
+            else:
+              user = None
+              _logger.warning('cannot find valid user for %s', data_prefix)
+        if user is not None:
+          path_prefix = '/'+user+'/files'+storage['mount_point']
+          data_prefix = storage['configuration']['datadir']
+          folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
+                                data_prefix=data_prefix))
+  workers = tuple(map(watch, folders))
   min_interval = min(instance.interval for instance in instances)
   while True:
     interval = min_interval
@@ -135,24 +204,17 @@ def watch_instances(instances):
     if interval is not None:
       time.sleep(interval)
 
-def watch(instance):
-  """Setup inotifywait for the given instance and yield tasks.
+def watch(folder):
+  """Setup inotifywait for the given folder and yield tasks.
   """
-  interval, user_name = instance.interval, instance.user
-  if instance.docker:
-    occ_cmd = ['docker', 'exec', '-u'+instance.docker[0], instance.docker[1],
-               'php', instance.occ]
-  else:
-    occ_cmd = ['php', instance.occ]
-  data_prefix = subprocess.check_output(
-      occ_cmd+['config:system:get', 'datadirectory'],
-      universal_newlines=True).rstrip()
+  data_prefix, path_prefix = folder.data_prefix, folder.path_prefix
+  _logger.info('watching %s <=> %s', data_prefix, path_prefix)
   data_prefix_len = len(data_prefix)
   scan_paths = set()
   inotifywait_proc = subprocess.Popen(
-      ['inotifywait', '--event', 'create,modify,move,delete', '--exclude',
-       r'/\.', '--recursive', data_prefix+'/'+user_name+'/files', '--quiet',
-       '--format', '%e/%f%w/', '--monitor'],
+      ['inotifywait', '--event=create,modify,move,delete', r'--exclude=/\.',
+       '--recursive', '--quiet', '--format=%e/%f%w/', '--monitor',
+       os.path.abspath(data_prefix)],   # relative path won't work
       stdout=subprocess.PIPE, bufsize=0)
   atexit.register(cleanup, inotifywait_proc)
   inotifywait_fd = inotifywait_proc.stdout.fileno()
@@ -169,11 +231,10 @@ def watch(instance):
         c = inotifywait_proc.stdout.read(1)
         # Python 3 nothing read
         if c is None:
-          yield Task(interval=interval, occ_cmd=occ_cmd, paths=scan_paths)
-          continue
+          raise IOError
       # Python 2 nothing read
       except IOError:
-        yield Task(interval=interval, occ_cmd=occ_cmd, paths=scan_paths)
+        yield Task(occ_cmd=folder.occ_cmd, paths=scan_paths)
         continue
 
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl)
@@ -204,7 +265,7 @@ def watch(instance):
     else:
       scan_path = file_path
     if data_prefix == scan_path[:data_prefix_len]:
-      scan_path = scan_path[data_prefix_len:]
+      scan_path = path_prefix+scan_path[data_prefix_len:]
     _logger.info('Found %s %s %s', file_path, event, file_name)
     scan_paths |= {scan_path}
 
