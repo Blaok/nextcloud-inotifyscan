@@ -1,5 +1,5 @@
 [Unit]
-Description=Nextcloud inotify scan daemon for %I
+Description=Nextcloud inotify scan daemon for %i
 
 [Service]
 Type=simple

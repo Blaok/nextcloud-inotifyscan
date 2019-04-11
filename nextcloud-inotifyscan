@@ -21,6 +21,7 @@ logging.basicConfig(format='%(levelname)s - %(message)s')
 _logger = logging.getLogger()
 
 Instance = collections.namedtuple('Instance', 'interval occ user docker')
+Task = collections.namedtuple('Task', 'interval occ_cmd paths')
 
 class EnvironNotFound(Exception):
   pass
@@ -102,28 +103,41 @@ def parse_args():
   except EnvironNotFound:
     pass
 
-  for instance in parse_config(args.config):
-    yield instance
+  if args.config is not None:
+    for instance in parse_config(args.config):
+      yield instance
 
 def cleanup(proc):
   proc.kill()
 
-def read_char(fd, hook=lambda: None, hook_args=()):
-  try:
-    char = fd.read(1)
-    # Python 3 timeout
-    if char is None:
-      hook(*hook_args)
-      return None
-  # Python 2 timeout
-  except IOError:
-    hook(*hook_args)
-    return None
-  return char
+def scan(task):
+  """Scan all paths with given the interval and occ command.
+  """
+  for p in task.paths:
+    _logger.info('Scan for %s', p)
+    subprocess.call(task.occ_cmd+['files:scan', '--no-interaction', '--path='+p,
+                                  '--shallow', '--quiet'])
+  task.paths.clear()
 
-def main():
-  signal.signal(signal.SIGINT, signal.default_int_handler)
-  instance = next(parse_args())
+def watch_instances(instances):
+  """Setup inotifywait for the given instances and yield tasks.
+  """
+  instances = tuple(instances)
+  workers = [watch(instance) for instance in instances]
+  min_interval = min(instance.interval for instance in instances)
+  while True:
+    interval = min_interval
+    for worker in workers:
+      task = next(worker)
+      if task.paths:
+        interval = None
+        yield task
+    if interval is not None:
+      time.sleep(interval)
+
+def watch(instance):
+  """Setup inotifywait for the given instance and yield tasks.
+  """
   interval, user_name = instance.interval, instance.user
   if instance.docker:
     occ_cmd = ['docker', 'exec', '-u'+instance.docker[0], instance.docker[1],
@@ -143,28 +157,31 @@ def main():
   atexit.register(cleanup, inotifywait_proc)
   inotifywait_fd = inotifywait_proc.stdout.fileno()
   inotifywait_fl = fcntl.fcntl(inotifywait_fd, fcntl.F_GETFL)
-  def polling_task():
-    for p in scan_paths:
-      _logger.info('Scan for %s\n', p)
-      subprocess.call(occ_cmd+['files:scan', '--no-interaction', '--path='+p,
-                               '--shallow', '--quiet'])
-    scan_paths.clear()
-    time.sleep(interval)
+
   while True:
     event = b''
     file_name = b''
     file_path = b''
     while True:
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl|os.O_NONBLOCK)
-      c = read_char(inotifywait_proc.stdout, polling_task)
-      if c is None:
+
+      try:
+        c = inotifywait_proc.stdout.read(1)
+        # Python 3 nothing read
+        if c is None:
+          yield Task(interval=interval, occ_cmd=occ_cmd, paths=scan_paths)
+          continue
+      # Python 2 nothing read
+      except IOError:
+        yield Task(interval=interval, occ_cmd=occ_cmd, paths=scan_paths)
         continue
+
       fcntl.fcntl(inotifywait_fd, fcntl.F_SETFL, inotifywait_fl)
       if c != b'/':
         event += c
       else:
         while True:
-          c = read_char(inotifywait_proc.stdout)
+          c = inotifywait_proc.stdout.read(1)
           if c != b'/':
             file_name += c
           else:
@@ -172,7 +189,7 @@ def main():
             while True:
               lastlastc = lastc
               lastc = c
-              c = read_char(inotifywait_proc.stdout)
+              c = inotifywait_proc.stdout.read(1)
               if c == b'\n' and lastc == b'/' and lastlastc == b'/':
                 break
               else:
@@ -188,8 +205,13 @@ def main():
       scan_path = file_path
     if data_prefix == scan_path[:data_prefix_len]:
       scan_path = scan_path[data_prefix_len:]
-    _logger.info('Found %s %s %s\n', file_path, event, file_name)
+    _logger.info('Found %s %s %s', file_path, event, file_name)
     scan_paths |= {scan_path}
+
+def main():
+  signal.signal(signal.SIGINT, signal.default_int_handler)
+  for task in watch_instances(parse_args()):
+    scan(task)
 
 if __name__ == '__main__':
   try:
