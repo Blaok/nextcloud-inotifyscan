@@ -181,7 +181,7 @@ interval = 0.1
 
 [Alice]
 occ = ${nextcloud}/occ
-user = alice
+user = alice,bob
 docker = no
 
 [Bob]
@@ -195,9 +195,11 @@ child=$!
 run-for-both
 kill-all ${child}
 diff <(cat <<EOF
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
 docker exec -u${dockeruser} ${dockercontainer} php occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
 php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/bar --shallow --quiet
 php ${nextcloud}/occ files:scan --no-interaction --path=/alice/files/ --shallow --quiet
+php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 docker exec -u${dockeruser} ${dockercontainer} php occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 7
