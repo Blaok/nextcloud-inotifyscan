@@ -5,3 +5,4 @@ if ! print-data-dir $@
 then
   echo $(basename $0) "$args"
 fi
+. "$(dirname "$(realpath $0)")"/err
