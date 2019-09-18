@@ -279,3 +279,12 @@ if __name__ == '__main__':
     main()
   except KeyboardInterrupt:
     sys.exit(0)
+  except subprocess.CalledProcessError as e:
+    _logger.fatal(
+        '%s returned non-zero exit status %d', e.cmd, e.returncode)
+    if e.output is not None:
+      _logger.fatal(e.output)
+    if getattr(e, 'stderr', None) is not None:
+      _logger.fatal(e.stderr)
+
+    sys.exit(1)
