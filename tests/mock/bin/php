@@ -3,3 +3,4 @@ if ! print-data-dir $0 $@
 then
   echo $(basename $0) $@
 fi
+. "$(dirname "$(realpath $0)")"/err

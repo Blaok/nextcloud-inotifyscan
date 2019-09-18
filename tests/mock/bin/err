@@ -1,0 +1,6 @@
+#!/bin/sh
+if test -n "${CMD_ERR}"
+then
+  echo "error message ${CMD_ERR} from $(basename $0)" >&2
+  exit 42
+fi

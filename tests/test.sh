@@ -204,4 +204,33 @@ docker exec -u${dockeruser} ${dockercontainer} php occ files:scan --no-interacti
 EOF
 ) ${tmp} || exit 7
 
+# Test command error for python3
+CMD_ERR=oops NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob ${python3} "${inotifyscan}" 2>${tmp} &
+run-for-bob
+diff <(cat <<EOF
+error message oops from php
+CRITICAL - ['php', '${mockdir}/nextcloud/occ', 'config:system:get', 'datadirectory'] returned non-zero exit status 42
+CRITICAL - ${mockdir}/nextcloud/data
+
+EOF
+) ${tmp} || exit 8
+
+# Test command error for python2
+cat >"${tmpconfig}" <<EOF
+[Alice]
+interval = 0.1
+occ = occ
+user = alice
+docker = ${dockeruser}:${dockercontainer}
+EOF
+CMD_ERR=foobar LOCAL_DATA=1 "${inotifyscan}" --config "${tmpconfig}" 2>${tmp} &
+run-for-alice
+diff <(cat <<EOF
+error message foobar from docker
+CRITICAL - ['docker', 'exec', '-uuserfoo', 'containerbar', 'php', 'occ', 'config:system:get', 'datadirectory'] returned non-zero exit status 42
+CRITICAL - ${mockdir}/data
+
+EOF
+) ${tmp} || exit 9
+
 rm ${tmp} ${tmpconfig}
