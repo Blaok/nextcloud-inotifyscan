@@ -150,7 +150,7 @@ def watch_instances(instances):
       # path_prefix is the virtual folder recognized by Nextcloud
       # data_prefix is the actual filesystem folder
       # both should point to the same logical folder
-      path_prefix = '/'+user+'/files'
+      path_prefix = '/'+user+'/files/'
       data_prefix = data_dir+path_prefix
       folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
                             data_prefix=data_prefix))
@@ -188,7 +188,7 @@ def watch_instances(instances):
               user = None
               _logger.warning('cannot find valid user for %s', data_prefix)
         if user is not None:
-          path_prefix = '/'+user+'/files'+storage['mount_point']
+          path_prefix = '/'+user+'/files'+storage['mount_point']+'/'
           data_prefix = storage['configuration']['datadir']
           folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
                                 data_prefix=data_prefix))
