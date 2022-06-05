@@ -40,7 +40,7 @@ def parse_config(config_file):
   """
   try:
     config = configparser.ConfigParser()
-    config.readfp(config_file)
+    config.read_file(config_file)
   except configparser.Error as e:
     _logger.fatal('config error: %s', e)
   for section in config.sections():
