@@ -24,39 +24,39 @@ function kill-all() {
 }
 
 function run-for-bob() {
-  sleep .2
+  sleep .5
   echo foo > "${nextcloud}/data/bob/files/bar"
-  sleep .2
+  sleep .5
   echo foo > "${nextcloud}/data/bob/files/한국어"
-  sleep .2
+  sleep .5
   rm "${nextcloud}/data/bob/files/한국어"
-  sleep .2
+  sleep .5
   rm "${nextcloud}/data/bob/files/bar"
-  sleep .2
+  sleep .5
 }
 
 function run-for-alice() {
-  sleep .2
+  sleep .5
   echo foo > "${datadir}/alice/files/bar"
-  sleep .2
+  sleep .5
   rm "${datadir}/alice/files/bar"
-  sleep .2
+  sleep .5
   echo foo > "${datadir}/alice/files/조선말"
-  sleep .2
+  sleep .5
   rm "${datadir}/alice/files/조선말"
-  sleep .2
+  sleep .5
 }
 
 function run-for-both() {
-  sleep .2
+  sleep .5
   echo foo > "${datadir}/bob/files/bar"
-  sleep .2
+  sleep .5
   echo foo > "${datadir}/alice/files/bar"
-  sleep .2
+  sleep .5
   rm "${datadir}/alice/files/bar"
-  sleep .2
+  sleep .5
   rm "${datadir}/bob/files/bar"
-  sleep .2
+  sleep .5
 }
 
 # Use case 1:
