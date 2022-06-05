@@ -1,5 +1,7 @@
 # nextcloud-inotifyscan
 
+[![CI](https://github.com/Blaok/nextcloud-inotifyscan/actions/workflows/ci.yml/badge.svg)](https://github.com/Blaok/nextcloud-inotifyscan/actions/workflows/ci.yml)
+
 Automatically scan external changes for [Nextcloud](https://nextcloud.com/) local storage.
 
 ## Motivation
