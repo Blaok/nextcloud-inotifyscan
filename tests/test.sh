@@ -139,16 +139,17 @@ interval = 0.1
 occ = ${nextcloud}/occ
 user = bob
 docker = no
+php = php8.0
 EOF
 ${python3} "${inotifyscan}" --config "${tmpconfig}" >${tmp} &
 child=$!
 run-for-bob
 kill-all ${child}
 diff <(cat <<EOF
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
-php ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+php8.0 ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/bar --shallow --quiet
+php8.0 ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/한국어 --shallow --quiet
+php8.0 ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
+php8.0 ${nextcloud}/occ files:scan --no-interaction --path=/bob/files/ --shallow --quiet
 EOF
 ) ${tmp} || exit 5
 
