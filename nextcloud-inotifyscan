@@ -82,7 +82,8 @@ def parse_environ():
     docker = False
     occ = require_environ('NEXTCLOUD_HOME') + '/occ'
   return Instance(interval=interval, occ=occ, users=(user,),
-                  external_storage=None, docker=docker)
+                  external_storage=None, docker=docker,
+                  php='php')
 
 def parse_args():
   """Parse commandline arguments and yield Instance objects.
