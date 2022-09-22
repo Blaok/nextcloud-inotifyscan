@@ -22,7 +22,7 @@ logging.basicConfig(format='%(levelname)s - %(message)s')
 _logger = logging.getLogger()
 
 Instance = collections.namedtuple(
-    'Instance', 'interval occ users external_storage docker')
+    'Instance', 'interval occ users external_storage docker php')
 Folder = collections.namedtuple('Folder', 'occ_cmd path_prefix data_prefix')
 Task = collections.namedtuple('Task', 'occ_cmd paths')
 
@@ -40,13 +40,17 @@ def parse_config(config_file):
   """
   try:
     config = configparser.ConfigParser()
-    config.read_file(config_file)
+    try:
+      config.read_file(config_file)
+    except AttributeError:
+      config.readfp(config_file)
   except configparser.Error as e:
     _logger.fatal('config error: %s', e)
   for section in config.sections():
     try:
       interval = configparser_default(
           config.getfloat, section, 'interval', 1.0)
+      php = configparser_default(config.get, section, 'php', 'php')
       occ = config.get(section, 'occ')
       users = tuple(map(str.strip, config.get(section, 'user').split(',')))
       external_storage = configparser_default(
@@ -59,7 +63,7 @@ def parse_config(config_file):
           _logger.warning('docker must be specified as `username:container`')
           continue
       yield Instance(interval=interval, occ=occ, users=users,
-                     external_storage=external_storage, docker=docker)
+                     external_storage=external_storage, docker=docker, php=php)
     except configparser.Error as e:
       _logger.warning('config error: %s', e)
 
@@ -81,7 +85,8 @@ def parse_environ():
     docker = False
     occ = require_environ('NEXTCLOUD_HOME') + '/occ'
   return Instance(interval=interval, occ=occ, users=(user,),
-                  external_storage=None, docker=docker)
+                  external_storage=None, docker=docker,
+                  php='php')
 
 def parse_args():
   """Parse commandline arguments and yield Instance objects.
@@ -140,9 +145,9 @@ def watch_instances(instances):
   for instance in instances:
     if instance.docker:
       occ_cmd = ['docker', 'exec', '-u'+instance.docker[0], instance.docker[1],
-                 'php', instance.occ]
+                 instance.php, instance.occ]
     else:
-      occ_cmd = ['php', instance.occ]
+      occ_cmd = [instance.php, instance.occ]
     data_dir = subprocess.check_output(
         occ_cmd+['config:system:get', 'datadirectory'],
         universal_newlines=True).rstrip()
