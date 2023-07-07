@@ -15,7 +15,7 @@ This Python script uses `inotifywait` to watch for changes and issues scan reque
 + Linux with systemd
 + Nextcloud 14+ installation
 + `php` and `inotifywait` in `PATH`
-+ Python 2.7 or 3.2+ as `/usr/bin/python`
++ Python 3.7+ as `/usr/bin/python`
 
 The script should work if modified for other environments.
 

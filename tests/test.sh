@@ -1,17 +1,13 @@
 #!/bin/bash
 testdir="$(dirname $(realpath $0))"
 mockdir="${testdir}/mock"
-inotifyscan="${testdir}/../nextcloud-inotifyscan"
+inotifyscan=(python "${testdir}/../nextcloud-inotifyscan")
 nextcloud="${mockdir}/nextcloud"
 datadir="${mockdir}/data"
 tmp=$(mktemp)
-python2=/usr/bin/python
-python3=/usr/bin/python
 dockeruser=userfoo
 dockercontainer=containerbar
 tmpconfig=$(mktemp)
-test -x /usr/bin/python2 && python2=/usr/bin/python2
-test -x /usr/bin/python3 && python3=/usr/bin/python3
 
 PATH="${mockdir}/bin:${PATH}"
 export INTERVAL=0.1
@@ -64,7 +60,7 @@ function run-for-both() {
 #   php must be available in $PATH
 #   $NEXTCLOUD_HOME/occ will be used
 #   data directory is under $NEXTCLOUD_HOME/data
-NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob ${python3} "${inotifyscan}" >${tmp} &
+NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob "${inotifyscan[@]}" >${tmp} &
 child=$!
 run-for-bob
 kill-all ${child}
@@ -81,7 +77,7 @@ EOF
 #   php must be available in $PATH
 #   $NEXTCLOUD_HOME/occ will be used
 #   data directory is customized
-LOCAL_DATA=1 NEXTCLOUD_HOME="${nextcloud}" USER_NAME=alice DATA_DIR="${datadir}" ${python2} "${inotifyscan}" >${tmp} &
+LOCAL_DATA=1 NEXTCLOUD_HOME="${nextcloud}" USER_NAME=alice DATA_DIR="${datadir}" "${inotifyscan[@]}" >${tmp} &
 child=$!
 run-for-alice
 kill-all ${child}
@@ -99,7 +95,7 @@ EOF
 #   php must be available in the docker's $PATH
 #   occ in the docker's $PATH will be used
 #   data directory is under $NEXTCLOUD_HOME/data
-USE_DOCKER=True DOCKER_USER=${dockeruser} DOCKER_CONTAINER=${dockercontainer} NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob "${inotifyscan}" >${tmp} &
+USE_DOCKER=True DOCKER_USER=${dockeruser} DOCKER_CONTAINER=${dockercontainer} NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob "${inotifyscan[@]}" >${tmp} &
 child=$!
 run-for-bob
 kill-all ${child}
@@ -117,7 +113,7 @@ EOF
 #   php must be available in the docker's $PATH
 #   occ in the docker's $PATH will be used
 #   data directory is customized
-LOCAL_DATA=1 USE_DOCKER=True DOCKER_USER=${dockeruser} DOCKER_CONTAINER=${dockercontainer} DATA_DIR="${datadir}" USER_NAME=alice "${inotifyscan}" >${tmp} &
+LOCAL_DATA=1 USE_DOCKER=True DOCKER_USER=${dockeruser} DOCKER_CONTAINER=${dockercontainer} DATA_DIR="${datadir}" USER_NAME=alice "${inotifyscan[@]}" >${tmp} &
 child=$!
 run-for-alice
 kill-all ${child}
@@ -141,7 +137,7 @@ user = bob
 docker = no
 php = php8.0
 EOF
-${python3} "${inotifyscan}" --config "${tmpconfig}" >${tmp} &
+"${inotifyscan[@]}" --config "${tmpconfig}" >${tmp} &
 child=$!
 run-for-bob
 kill-all ${child}
@@ -162,7 +158,7 @@ occ = occ
 user = alice
 docker = ${dockeruser}:${dockercontainer}
 EOF
-LOCAL_DATA=1 "${inotifyscan}" --config "${tmpconfig}" >${tmp} &
+LOCAL_DATA=1 "${inotifyscan[@]}" --config "${tmpconfig}" >${tmp} &
 child=$!
 run-for-alice
 kill-all ${child}
@@ -190,7 +186,7 @@ occ = occ
 user = bob
 docker = ${dockeruser}:${dockercontainer}
 EOF
-LOCAL_DATA=1 "${inotifyscan}" \
+LOCAL_DATA=1 "${inotifyscan[@]}" \
   --config "${tmpconfig}" >${tmp} &
 child=$!
 run-for-both
@@ -205,8 +201,8 @@ docker exec -u${dockeruser} ${dockercontainer} php occ files:scan --no-interacti
 EOF
 ) ${tmp} || exit 7
 
-# Test command error for python3
-CMD_ERR=oops NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob ${python3} "${inotifyscan}" 2>${tmp} &
+# Test command error
+CMD_ERR=oops NEXTCLOUD_HOME="${nextcloud}" USER_NAME=bob "${inotifyscan[@]}" 2>${tmp} &
 run-for-bob
 diff <(cat <<EOF
 error message oops from php
@@ -216,7 +212,7 @@ CRITICAL - ${mockdir}/nextcloud/data
 EOF
 ) ${tmp} || exit 8
 
-# Test command error for python2
+# Test command error
 cat >"${tmpconfig}" <<EOF
 [Alice]
 interval = 0.1
@@ -224,7 +220,7 @@ occ = occ
 user = alice
 docker = ${dockeruser}:${dockercontainer}
 EOF
-CMD_ERR=foobar LOCAL_DATA=1 "${inotifyscan}" --config "${tmpconfig}" 2>${tmp} &
+CMD_ERR=foobar LOCAL_DATA=1 "${inotifyscan[@]}" --config "${tmpconfig}" 2>${tmp} &
 run-for-alice
 diff <(cat <<EOF
 INFO - mapping base path in container /docker => ${mockdir}
