@@ -55,6 +55,9 @@ function run-for-both() {
   sleep .5
 }
 
+# Invoke Python once to warm up cache
+"${inotifyscan[@]}" --help
+
 # Use case 1:
 #   set NEXTCLOUD_HOME and USER_NAME
 #   php must be available in $PATH
