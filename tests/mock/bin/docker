@@ -1,7 +1,31 @@
 #!/bin/sh
+if [ "$1" = 'inspect' ]; then
+  exec cat <<EOF
+    [
+      {
+        "Type": "bind",
+        "Source": "$(realpath "$(dirname "$(realpath "$0")")/..")",
+        "Destination": "/docker",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      },
+      {
+        "Type": "volume",
+        "Name": "baz",
+        "Source": "/var/lib/docker/volumes/baz/_data",
+        "Destination": "/var/lib/containerbar",
+        "Driver": "local",
+        "Mode": "z",
+        "RW": true,
+        "Propagation": ""
+      }
+    ]
+EOF
+fi
 args="$@"
 shift 3
-if ! print-data-dir $@
+if ! IN_CONTAINER=1 print-data-dir $@
 then
   echo $(basename $0) "$args"
 fi

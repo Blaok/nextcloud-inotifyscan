@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import time
+from typing import Dict, Optional, Tuple
 
 try:
   import configparser
@@ -28,6 +29,38 @@ Task = collections.namedtuple('Task', 'occ_cmd paths')
 
 class EnvironNotFound(Exception):
   pass
+
+
+class PathMapper:
+
+  def __init__(self, docker: Optional[Tuple[str, str]]) -> None:
+    self._mappings: Dict[str, str] = {}
+
+    if not docker:
+      return
+
+    for mount in json.loads(
+        subprocess.check_output(
+            ['docker', 'inspect', '--format={{json .Mounts}}', docker[1]],
+            universal_newlines=True,
+        )):
+      path_in_container = mount['Destination']
+      path_on_host = mount['Source']
+      self._mappings[path_in_container] = path_on_host
+      _logger.info('mapping base path in container %s => %s',
+                   path_in_container, path_on_host)
+
+  def __call__(self, path: str) -> str:
+    if not self._mappings:
+      return path
+
+    for path_in_container, path_on_host in self._mappings.items():
+      if path.startswith(path_in_container):
+        mapped_path = path_on_host + path[len(path_in_container):]
+        _logger.info('mapping path in container %s => %s', path, mapped_path)
+        return mapped_path
+
+    return path
 
 def configparser_default(get_func, section, option, default):
   try:
@@ -148,9 +181,11 @@ def watch_instances(instances):
                  instance.php, instance.occ]
     else:
       occ_cmd = [instance.php, instance.occ]
+    path_mapper = PathMapper(instance.docker)
     data_dir = subprocess.check_output(
         occ_cmd+['config:system:get', 'datadirectory'],
         universal_newlines=True).rstrip()
+    data_dir = path_mapper(data_dir)
     for user in instance.users:
       # path_prefix is the virtual folder recognized by Nextcloud
       # data_prefix is the actual filesystem folder
@@ -195,6 +230,7 @@ def watch_instances(instances):
         if user is not None:
           path_prefix = '/'+user+'/files'+storage['mount_point'].rstrip('/')
           data_prefix = storage['configuration']['datadir'].rstrip('/')
+          data_prefix = path_mapper(data_prefix)
           folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
                                 data_prefix=data_prefix))
   workers = tuple(map(watch, folders))

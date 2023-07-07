@@ -5,11 +5,17 @@ if test $# -eq 4 &&
   test "$3" = "config:system:get" &&
   test "$4" = "datadirectory"
 then
+  if test -n "${IN_CONTAINER}"
+  then
+    base="/docker"
+  else
+    base="$(realpath $(dirname $0)/../..)/mock"
+  fi
   if test -n "${LOCAL_DATA}"
   then
-    echo "$(realpath $(dirname $0)/../..)/mock/data"
+    echo "${base}/data"
   else
-    echo "$(realpath $(dirname $0)/../..)/mock/nextcloud/data"
+    echo "${base}/nextcloud/data"
   fi
   exit 0
 fi

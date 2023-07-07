@@ -227,9 +227,11 @@ EOF
 CMD_ERR=foobar LOCAL_DATA=1 "${inotifyscan}" --config "${tmpconfig}" 2>${tmp} &
 run-for-alice
 diff <(cat <<EOF
+INFO - mapping base path in container /docker => ${mockdir}
+INFO - mapping base path in container /var/lib/containerbar => /var/lib/docker/volumes/baz/_data
 error message foobar from docker
 CRITICAL - ['docker', 'exec', '-uuserfoo', 'containerbar', 'php', 'occ', 'config:system:get', 'datadirectory'] returned non-zero exit status 42
-CRITICAL - ${mockdir}/data
+CRITICAL - /docker/data
 
 EOF
 ) ${tmp} || exit 9
