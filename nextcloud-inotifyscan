@@ -191,7 +191,7 @@ def watch_instances(instances):
       # data_prefix is the actual filesystem folder
       # both should point to the same logical folder
       path_prefix = '/'+user+'/files'
-      data_prefix = data_dir+path_prefix
+      data_prefix = data_dir.rstrip('/')+path_prefix
       folders.append(Folder(occ_cmd=occ_cmd, path_prefix=path_prefix,
                             data_prefix=data_prefix))
     if instance.external_storage:
