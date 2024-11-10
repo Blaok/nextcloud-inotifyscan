@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  - push
-  - pull_request
+  push:
+  pull_request:
+  schedule:
+    - cron: "33 23 * * FRI" # 23:33 UTC / 16:33 PDT / 15:33 PST
 
 jobs:
   CI:
