@@ -23,7 +23,7 @@ logging.basicConfig(format='%(levelname)s - %(message)s')
 _logger = logging.getLogger()
 
 Instance = collections.namedtuple(
-    'Instance', 'interval occ users external_storage docker php')
+    'Instance', 'interval occ users external_storage docker php datadirectory')
 Folder = collections.namedtuple('Folder', 'occ_cmd path_prefix data_prefix')
 Task = collections.namedtuple('Task', 'occ_cmd paths')
 
@@ -95,8 +95,13 @@ def parse_config(config_file):
         if len(docker) != 2:
           _logger.warning('docker must be specified as `username:container`')
           continue
+      datadirectory = configparser_default(
+          config.get, section, 'datadirectory', None)
+      if datadirectory is not None:
+        datadirectory = datadirectory.strip()
       yield Instance(interval=interval, occ=occ, users=users,
-                     external_storage=external_storage, docker=docker, php=php)
+                     external_storage=external_storage, docker=docker, php=php,
+                     datadirectory=datadirectory)
     except configparser.Error as e:
       _logger.warning('config error: %s', e)
 
@@ -117,9 +122,10 @@ def parse_environ():
   else:
     docker = False
     occ = require_environ('NEXTCLOUD_HOME') + '/occ'
+  datadirectory = os.environ.get('DATA_DIRECTORY', '').strip() or None
   return Instance(interval=interval, occ=occ, users=(user,),
                   external_storage=None, docker=docker,
-                  php='php')
+                  php='php', datadirectory=datadirectory)
 
 def parse_args():
   """Parse commandline arguments and yield Instance objects.
@@ -182,10 +188,14 @@ def watch_instances(instances):
     else:
       occ_cmd = [instance.php, instance.occ]
     path_mapper = PathMapper(instance.docker)
-    data_dir = subprocess.check_output(
-        occ_cmd+['config:system:get', 'datadirectory'],
-        universal_newlines=True).rstrip()
-    data_dir = path_mapper(data_dir)
+    if instance.datadirectory:
+      data_dir = instance.datadirectory
+      _logger.info('using configured host datadirectory: %s', data_dir)
+    else:
+      data_dir = subprocess.check_output(
+          occ_cmd+['config:system:get', 'datadirectory'],
+          universal_newlines=True).rstrip()
+      data_dir = path_mapper(data_dir)
     for user in instance.users:
       # path_prefix is the virtual folder recognized by Nextcloud
       # data_prefix is the actual filesystem folder

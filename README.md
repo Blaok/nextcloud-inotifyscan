@@ -29,7 +29,7 @@ The script should work if modified for other environments.
 
 ## Features
 
-+ The `data` dir path is now read from `/path/to/nextcloud/config.php` automatically.
++ The `data` dir path is read from Nextcloud config (e.g. `occ config:system:get datadirectory`) automatically. When using Docker, you can override this with the host path via the `datadirectory` config option or the `DATA_DIRECTORY` environment variable.
 + Multiple users and multiple Nextcloud installation instances can be watched in a single service.
 + Local filesystem folders added via the external storage app are supported.
 
